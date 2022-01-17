@@ -44,18 +44,21 @@ void recvThread(int sd) {
 	static const int BUFSIZE = 65536;
 	char buf[BUFSIZE];
 	while (true) {
+		/*
+		 * Receive data from Server
+		*/ 
 		ssize_t res = ::recv(sd, buf, BUFSIZE - 1, 0);
 		if (res == 0 || res == -1) {
 			fprintf(stderr, "recv return %ld", res);
 			perror(" ");
 			break;
 		}
-		buf[res] = '\0';
-		printf("%s", buf);
-		fflush(stdout);
+		buf[res] = '\0'; 	// last
+		printf("%s", buf);  // print!!
+		fflush(stdout); 	// empth
 	}
 	printf("disconnected\n");
-	::close(sd);
+	::close(sd); // close socket
 	exit(0);
 }
 
@@ -70,18 +73,25 @@ int main(int argc, char* argv[]) {
 	WSAStartup(0x0202, &wsaData);
 #endif // WIN32
 
+	/*
+	 * Create socket for TCP connection and IPv4 domain
+	*/ 
 	int sd = ::socket(AF_INET, SOCK_STREAM, 0);
 	if (sd == -1) {
 		perror("socket");
 		return -1;
 	}
 
+	// Server IP
 	struct sockaddr_in addr;
 	addr.sin_family = AF_INET;
 	addr.sin_port = htons(param.port);
 	addr.sin_addr = param.ip;
 	memset(&addr.sin_zero, 0, sizeof(addr.sin_zero));
 
+	/*
+	 * Connect the server to the client socket
+	*/ 
 	int res = ::connect(sd, (struct sockaddr *)&addr, sizeof(addr));
 	if (res == -1) {
 		perror("connect");
@@ -94,8 +104,11 @@ int main(int argc, char* argv[]) {
 	while (true) {
 		static const int BUFSIZE = 65536;
 		char buf[BUFSIZE];
-		scanf("%s", buf);
+		scanf("%s", buf); // input
 		strcat(buf, "\r\n");
+		/*
+		 * Send data to Server
+		*/ 
 		ssize_t res = ::send(sd, buf, strlen(buf), 0);
 		if (res == 0 || res == -1) {
 			fprintf(stderr, "send return %ld", res);
@@ -103,5 +116,5 @@ int main(int argc, char* argv[]) {
 			break;
 		}
 	}
-	::close(sd);
+	::close(sd); // close socket
 }
