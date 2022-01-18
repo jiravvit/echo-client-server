@@ -20,7 +20,7 @@ void perror(const char* msg) { fprintf(stderr, "%s %ld\n", msg, GetLastError());
 #endif // WIN32
 
 std::vector<int> clients; // for broadcast
-static std::mutex m;
+static std::mutex m; // iter, insert, remove
 
 void usage() {
 	printf("syntax: echo-server <port> [-e[-b]]\n");
@@ -70,6 +70,7 @@ void recvThread(int sd) {
 		fflush(stdout); 	// empty
 		if (param.echo) {
 			if (param.broadcast) {
+				m.lock();
 				for (int sd : clients) {	// for broadcast
 					/*
 					 * Send data to Client
@@ -77,10 +78,11 @@ void recvThread(int sd) {
 					res = ::send(sd, buf, res, 0);
 					if (res == 0 || res == -1) {
 						fprintf(stderr, "send return %ld", res);
-						perror(" ");
-						break;	
+						perror(" ");	
+						// no break  : because of next msg...
 					}
 				}
+				m.unlock();
 			}
 			else {
 				/*
