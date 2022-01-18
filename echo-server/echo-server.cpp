@@ -13,12 +13,14 @@
 #include <thread>
 #include <vector> // std::vector
 #include <algorithm> // std::algorithm::find
+#include <mutex> // mutex
 
 #ifdef WIN32
 void perror(const char* msg) { fprintf(stderr, "%s %ld\n", msg, GetLastError()); }
 #endif // WIN32
 
 std::vector<int> clients; // for broadcast
+static std::mutex m;
 
 void usage() {
 	printf("syntax: echo-server <port> [-e[-b]]\n");
@@ -52,6 +54,7 @@ void recvThread(int sd) {
 	printf("connected\n");
 	static const int BUFSIZE = 65536;
 	char buf[BUFSIZE];
+
 	while (true) {
 		/*
 		 * Receive data from Client
@@ -94,8 +97,10 @@ void recvThread(int sd) {
 	}
 	printf("disconnected\n");
 	auto it = find(clients.begin(), clients.end(), sd);
+	m.lock();
 	clients.erase(it);	// erase iterator
 	clients.clear();	// clear vector
+	m.unlock();
 	::close(sd); // close client socket
 }
 
@@ -173,7 +178,9 @@ int main(int argc, char* argv[]) {
 			perror("accept");
 			break;
 		}
+		m.lock();
 		clients.push_back(cli_sd);	// for broadcast
+		m.unlock();
 		std::thread* t = new std::thread(recvThread, cli_sd);
 		t->detach();
 	}
